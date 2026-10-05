@@ -67,7 +67,7 @@ DEFAULTS = {
 
 
 # =========================================================
-# DARK THEME
+# DARK THEME AND UI STYLES
 # =========================================================
 
 st.markdown(
@@ -77,11 +77,16 @@ st.markdown(
         background: linear-gradient(135deg, #08111f, #101b30, #111827);
         color: #FFFFFF;
     }
-    [data-testid="stHeader"] { background: transparent; }
+
+    [data-testid="stHeader"] {
+        background: transparent;
+    }
+
     [data-testid="stSidebar"] {
         background: #0B1220;
         border-right: 1px solid #293C56;
     }
+
     [data-testid="stSidebar"] h1,
     [data-testid="stSidebar"] h2,
     [data-testid="stSidebar"] h3,
@@ -90,13 +95,22 @@ st.markdown(
     [data-testid="stSidebar"] span {
         color: #FFFFFF !important;
     }
+
     .block-container {
         padding-top: 1.5rem;
         padding-bottom: 3rem;
         max-width: 1600px;
     }
-    h1, h2, h3, h4, p, li, label { color: #F1F5F9; }
-    .stMarkdown p, .stMarkdown li { color: #D5DEEB; }
+
+    h1, h2, h3, h4, p, li, label {
+        color: #F1F5F9;
+    }
+
+    .stMarkdown p,
+    .stMarkdown li {
+        color: #D5DEEB;
+    }
+
     .metric-card {
         background: #111E31;
         border: 1px solid #344966;
@@ -105,7 +119,12 @@ st.markdown(
         min-height: 100px;
         margin-bottom: 0.5rem;
     }
-    .metric-label { color: #CBD5E1 !important; font-size: 0.82rem; }
+
+    .metric-label {
+        color: #CBD5E1 !important;
+        font-size: 0.82rem;
+    }
+
     .metric-value {
         color: #FFFFFF !important;
         font-size: 1.4rem;
@@ -113,31 +132,75 @@ st.markdown(
         margin-top: 0.4rem;
         overflow-wrap: anywhere;
     }
+
     [data-testid="stWidgetLabel"] p,
-    [data-testid="stCaptionContainer"] p { color: #D5DEEB !important; }
+    [data-testid="stCaptionContainer"] p {
+        color: #D5DEEB !important;
+    }
+
+    /* Number input appearance */
     [data-testid="stNumberInput"] input {
         background-color: #F8FAFC !important;
         color: #111827 !important;
         -webkit-text-fill-color: #111827 !important;
     }
+
+    /* Hide manual + and - stepper buttons */
     [data-testid="stNumberInput"] button {
-        background-color: #E2E8F0 !important;
-        color: #111827 !important;
+        display: none !important;
     }
-    .stButton > button, .stFormSubmitButton > button {
+
+    /* Consistent button sizing */
+    .stButton > button,
+    .stFormSubmitButton > button {
         background: #2563EB !important;
         color: #FFFFFF !important;
         border: 1px solid #3B82F6 !important;
         border-radius: 9px !important;
         font-weight: 600 !important;
-        min-height: 2.7rem;
+        width: 100%;
+        min-height: 2.8rem;
+        height: auto;
+        white-space: normal;
+        overflow-wrap: anywhere;
     }
-    .stButton > button:hover, .stFormSubmitButton > button:hover {
+
+    .stButton > button:hover,
+    .stFormSubmitButton > button:hover {
         background: #1D4ED8 !important;
     }
-    [data-testid="stAlert"] p { color: #FFFFFF !important; }
-    hr { border-color: #344966 !important; }
-    footer { visibility: hidden; }
+
+    [data-testid="stAlert"] p {
+        color: #FFFFFF !important;
+    }
+
+    hr {
+        border-color: #344966 !important;
+    }
+
+    /* Uniform home-page card titles and descriptions */
+    .home-card-title {
+        min-height: 3.8rem;
+        display: flex;
+        align-items: flex-start;
+    }
+
+    .home-card-title h3 {
+        margin: 0;
+        font-size: 1.15rem;
+        line-height: 1.5rem;
+        color: #F1F5F9;
+    }
+
+    .home-card-description {
+        min-height: 4.5rem;
+        color: #D5DEEB;
+        line-height: 1.5rem;
+    }
+
+    footer {
+        visibility: hidden;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -163,8 +226,10 @@ def load_models():
 
     for name, filename in filenames.items():
         path = MODEL_DIR / filename
+
         if not path.is_file():
             raise FileNotFoundError(f"Model file not found: {path}")
+
         loaded[name] = joblib.load(path)
 
     return loaded
@@ -185,8 +250,8 @@ except Exception as error:
     st.error("Could not load the saved models.")
     st.code(str(error))
     st.warning(
-        "Check that all model files exist and that your Python and "
-        "scikit-learn versions are compatible with the saved models."
+        "Check that all model files exist and that your Python "
+        "and scikit-learn versions are compatible with the saved models."
     )
     st.stop()
 
@@ -244,6 +309,7 @@ def scale_cluster_input(frame, scaler):
 
     if scaler_features is not None:
         expected = list(scaler_features)
+
         if expected != list(frame.columns):
             raise ValueError(
                 "The saved scaler expects different features. "
@@ -251,6 +317,7 @@ def scale_cluster_input(frame, scaler):
             )
 
     expected_count = getattr(scaler, "n_features_in_", None)
+
     if expected_count is not None and expected_count != frame.shape[1]:
         raise ValueError(
             f"The saved scaler expects {expected_count} features, "
@@ -260,22 +327,38 @@ def scale_cluster_input(frame, scaler):
     return scaler.transform(frame)
 
 
-def show_shap_explanation(model, frame, title, positive_class_index=None):
+def show_shap_explanation(
+    model,
+    frame,
+    title,
+    positive_class_index=None,
+):
     try:
         explainer = shap.TreeExplainer(model)
         shap_values = explainer.shap_values(frame)
 
         if isinstance(shap_values, list):
-            class_index = positive_class_index or 0
+            class_index = (
+                positive_class_index
+                if positive_class_index is not None
+                else 0
+            )
             values = np.asarray(shap_values[class_index])[0]
+
         else:
             shap_values = np.asarray(shap_values)
 
             if shap_values.ndim == 3:
-                class_index = positive_class_index or 0
+                class_index = (
+                    positive_class_index
+                    if positive_class_index is not None
+                    else 0
+                )
                 values = shap_values[0, :, class_index]
+
             elif shap_values.ndim == 2:
                 values = shap_values[0]
+
             else:
                 st.warning("SHAP returned an unsupported output shape.")
                 return
@@ -287,7 +370,10 @@ def show_shap_explanation(model, frame, title, positive_class_index=None):
         importance = pd.DataFrame({
             "Feature": frame.columns,
             "Impact": np.abs(values),
-        }).sort_values("Impact", ascending=False).head(10)
+        }).sort_values(
+            "Impact",
+            ascending=False,
+        ).head(10)
 
         st.markdown(f"### {title}")
         st.caption(
@@ -296,15 +382,18 @@ def show_shap_explanation(model, frame, title, positive_class_index=None):
         )
 
         fig, ax = plt.subplots(figsize=(8, 4))
+
         ax.barh(
             importance["Feature"].iloc[::-1],
             importance["Impact"].iloc[::-1],
             color="#3182F6",
         )
+
         ax.set_xlabel("Absolute SHAP value")
         ax.set_ylabel("Feature")
         ax.set_title(title)
         fig.tight_layout()
+
         st.pyplot(fig, use_container_width=True)
         plt.close(fig)
 
@@ -343,23 +432,33 @@ with st.sidebar:
     st.markdown("**Model Status**")
     st.success("Saved models loaded")
 
-    # Diagnostic information for troubleshooting DBSCAN.
+    # DBSCAN diagnostics
     dbscan_model = models["dbscan"]
     scaler_model = models["scaler"]
 
     st.subheader("DBSCAN Diagnostics")
-    st.write("DBSCAN eps:", getattr(dbscan_model, "eps", "Unknown"))
-    st.write("DBSCAN metric:", getattr(dbscan_model, "metric", "Unknown"))
+
+    st.write(
+        "DBSCAN eps:",
+        getattr(dbscan_model, "eps", "Unknown"),
+    )
+    st.write(
+        "DBSCAN metric:",
+        getattr(dbscan_model, "metric", "Unknown"),
+    )
 
     components = getattr(dbscan_model, "components_", None)
+
     st.write(
         "Core samples shape:",
         components.shape if components is not None else "Not available",
     )
+
     st.write(
         "Scaler feature count:",
         getattr(scaler_model, "n_features_in_", "Unknown"),
     )
+
     st.write(
         "Scaler feature names:",
         list(getattr(scaler_model, "feature_names_in_", []))
@@ -390,29 +489,64 @@ if page == "Overview":
     st.subheader("Overview")
 
     col1, col2, col3 = st.columns(3)
+
     with col1:
         metric_card("ANALYTICS MODULES", "04")
+
     with col2:
         metric_card("CLASSIFICATION", "Random Forest")
+
     with col3:
         metric_card("CLUSTERING METHODS", "K-Means + DBSCAN")
 
     st.markdown("### Explore the Dashboard")
 
     items = [
-        ("PHA Classification", "Classify asteroid features using the trained model."),
-        ("Diameter Prediction", "Estimate asteroid diameter in kilometres."),
-        ("K-Means Clustering", "Group asteroids by orbital characteristics."),
-        ("DBSCAN Clustering", "Explore density-based clusters and noise detection."),
-        ("Model Evaluation", "Review classification and regression metrics."),
+        (
+            "PHA Classification",
+            "Classify asteroid features using the trained model.",
+        ),
+        (
+            "Diameter Prediction",
+            "Estimate asteroid diameter in kilometres.",
+        ),
+        (
+            "K-Means Clustering",
+            "Group asteroids by orbital characteristics.",
+        ),
+        (
+            "DBSCAN Clustering",
+            "Explore density-based clusters and noise detection.",
+        ),
+        (
+            "Model Evaluation",
+            "Review classification and regression metrics.",
+        ),
     ]
 
+    # Consistent three-column layout for home-page cards.
     columns = st.columns(3, gap="medium")
 
     for index, (title, description) in enumerate(items):
         with columns[index % 3]:
-            st.markdown(f"### {title}")
-            st.write(description)
+            st.markdown(
+                f"""
+                <div class="home-card-title">
+                    <h3>{title}</h3>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            st.markdown(
+                f"""
+                <div class="home-card-description">
+                    {description}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
             if st.button(
                 f"Open {title}",
                 key=f"open_{index}",
@@ -428,12 +562,15 @@ if page == "Overview":
 
 elif page == "PHA Classification":
     st.subheader("PHA Classification")
-    st.caption("Enter asteroid orbital features and view the model explanation.")
+    st.caption(
+        "Enter asteroid orbital features and view the model explanation."
+    )
 
     left_col, right_col = st.columns([1, 1.15], gap="large")
 
     with left_col:
         st.markdown("### Orbital Features")
+
         threshold = st.slider(
             "Classification threshold",
             min_value=0.10,
@@ -444,7 +581,11 @@ elif page == "PHA Classification":
         )
 
         with st.form("pha_form"):
-            values = feature_inputs(CLASSIFICATION_FEATURES, "pha")
+            values = feature_inputs(
+                CLASSIFICATION_FEATURES,
+                "pha",
+            )
+
             submitted = st.form_submit_button(
                 "Run PHA Classification",
                 use_container_width=True,
@@ -455,15 +596,23 @@ elif page == "PHA Classification":
 
         if submitted:
             try:
-                frame = make_input_frame(values, CLASSIFICATION_FEATURES)
+                frame = make_input_frame(
+                    values,
+                    CLASSIFICATION_FEATURES,
+                )
+
                 classifier = models["classifier"]
                 probabilities = classifier.predict_proba(frame)[0]
                 classes = list(classifier.classes_)
 
-                positive_labels = {"1", "Y", "YES", "TRUE", "P", "PHA"}
+                positive_labels = {
+                    "1", "Y", "YES", "TRUE", "P", "PHA"
+                }
+
                 pha_index = next(
                     (
-                        index for index, label in enumerate(classes)
+                        index
+                        for index, label in enumerate(classes)
                         if str(label).strip().upper() in positive_labels
                     ),
                     None,
@@ -471,24 +620,36 @@ elif page == "PHA Classification":
 
                 if pha_index is None:
                     st.error(
-                        f"Could not identify the PHA class. Model labels: {classes}. "
+                        f"Could not identify the PHA class. "
+                        f"Model labels: {classes}. "
                         "Check the original training target labels."
                     )
+
                 else:
                     probability = float(probabilities[pha_index])
                     is_pha = probability >= threshold
 
                     c1, c2 = st.columns(2)
+
                     with c1:
-                        metric_card("PHA PROBABILITY", f"{probability:.2%}")
+                        metric_card(
+                            "PHA PROBABILITY",
+                            f"{probability:.2%}",
+                        )
+
                     with c2:
                         metric_card(
                             "MODEL OUTPUT",
                             "PHA class" if is_pha else "Non-PHA class",
                         )
 
-                    st.caption(f"Classification threshold: {threshold:.0%}")
-                    st.progress(min(1.0, max(0.0, probability)))
+                    st.caption(
+                        f"Classification threshold: {threshold:.0%}"
+                    )
+
+                    st.progress(
+                        min(1.0, max(0.0, probability))
+                    )
 
                     show_shap_explanation(
                         classifier,
@@ -504,6 +665,7 @@ elif page == "PHA Classification":
 
             except Exception as error:
                 st.error(f"Classification failed: {error}")
+
         else:
             st.info(
                 "Enter the features on the left and click "
@@ -523,8 +685,13 @@ elif page == "Diameter Prediction":
 
     with left_col:
         st.markdown("### Orbital Features")
+
         with st.form("diameter_form"):
-            values = feature_inputs(REGRESSION_FEATURES, "diameter")
+            values = feature_inputs(
+                REGRESSION_FEATURES,
+                "diameter",
+            )
+
             submitted = st.form_submit_button(
                 "Predict Diameter",
                 use_container_width=True,
@@ -535,21 +702,32 @@ elif page == "Diameter Prediction":
 
         if submitted:
             try:
-                frame = make_input_frame(values, REGRESSION_FEATURES)
+                frame = make_input_frame(
+                    values,
+                    REGRESSION_FEATURES,
+                )
+
                 model = models["diameter"]
                 prediction = float(model.predict(frame)[0])
 
                 if not np.isfinite(prediction):
-                    raise ValueError("The model returned an invalid value.")
+                    raise ValueError(
+                        "The model returned an invalid value."
+                    )
 
                 c1, c2 = st.columns(2)
+
                 with c1:
                     metric_card(
                         "ESTIMATED DIAMETER",
                         f"{max(0.0, prediction):,.3f} km",
                     )
+
                 with c2:
-                    metric_card("MODEL", "Random Forest Regressor")
+                    metric_card(
+                        "MODEL",
+                        "Random Forest Regressor",
+                    )
 
                 if prediction < 0:
                     st.warning(
@@ -565,6 +743,7 @@ elif page == "Diameter Prediction":
 
             except Exception as error:
                 st.error(f"Diameter prediction failed: {error}")
+
         else:
             st.info(
                 "Enter the features and click 'Predict Diameter' "
@@ -578,10 +757,17 @@ elif page == "Diameter Prediction":
 
 elif page == "K-Means Clustering":
     st.subheader("K-Means Clustering")
-    st.caption("Group asteroid inputs using the saved K-Means model.")
+    st.caption(
+        "Group asteroid inputs using the saved K-Means model."
+    )
 
     with st.form("cluster_form"):
-        values = feature_inputs(CLUSTER_FEATURES, "cluster", columns=2)
+        values = feature_inputs(
+            CLUSTER_FEATURES,
+            "cluster",
+            columns=2,
+        )
+
         submitted = st.form_submit_button(
             "Assign Cluster",
             use_container_width=True,
@@ -589,13 +775,24 @@ elif page == "K-Means Clustering":
 
     if submitted:
         try:
-            frame = make_input_frame(values, CLUSTER_FEATURES)
-            scaled = scale_cluster_input(frame, models["scaler"])
+            frame = make_input_frame(
+                values,
+                CLUSTER_FEATURES,
+            )
+
+            scaled = scale_cluster_input(
+                frame,
+                models["scaler"],
+            )
+
             kmeans = models["kmeans"]
             cluster = int(kmeans.predict(scaled)[0])
 
             metric_card("ASSIGNED CLUSTER", str(cluster))
-            st.caption("Cluster labels are group identifiers, not hazard ratings.")
+
+            st.caption(
+                "Cluster labels are group identifiers, not hazard ratings."
+            )
 
             centers = np.asarray(kmeans.cluster_centers_)
             point = np.asarray(scaled[0])
@@ -606,21 +803,33 @@ elif page == "K-Means Clustering":
                     "cluster-centre feature count."
                 )
 
-            distances = np.linalg.norm(centers - point, axis=1)
+            distances = np.linalg.norm(
+                centers - point,
+                axis=1,
+            )
+
             distance_table = pd.DataFrame({
                 "Cluster": np.arange(len(distances)),
                 "Distance": distances,
-            }).sort_values("Distance").reset_index(drop=True)
+            }).sort_values(
+                "Distance"
+            ).reset_index(drop=True)
 
             st.markdown("### Cluster Distances")
+
             st.dataframe(
-                distance_table.style.format({"Distance": "{:.4f}"}),
+                distance_table.style.format({
+                    "Distance": "{:.4f}"
+                }),
                 use_container_width=True,
                 hide_index=True,
             )
 
             with st.expander("View submitted input values"):
-                st.dataframe(frame, use_container_width=True)
+                st.dataframe(
+                    frame,
+                    use_container_width=True,
+                )
 
         except Exception as error:
             st.error(f"K-Means clustering failed: {error}")
@@ -632,17 +841,26 @@ elif page == "K-Means Clustering":
 
 elif page == "DBSCAN Clustering":
     st.subheader("DBSCAN Clustering")
-    st.caption("Check whether an input is near a saved DBSCAN core sample.")
+
+    st.caption(
+        "Check whether an input is near a saved DBSCAN core sample."
+    )
 
     st.info(
-        "DBSCAN does not provide a standard predict() method for new samples. "
-        "This page estimates the nearest saved core sample. It is valid only "
-        "when the input uses the same features, preprocessing and distance "
-        "metric as the original DBSCAN training process."
+        "DBSCAN does not provide a standard predict() method for new "
+        "samples. This page estimates the nearest saved core sample. "
+        "It is valid only when the input uses the same features, "
+        "preprocessing and distance metric as the original DBSCAN "
+        "training process."
     )
 
     with st.form("dbscan_form"):
-        values = feature_inputs(CLUSTER_FEATURES, "dbscan", columns=2)
+        values = feature_inputs(
+            CLUSTER_FEATURES,
+            "dbscan",
+            columns=2,
+        )
+
         submitted = st.form_submit_button(
             "Check DBSCAN Cluster",
             use_container_width=True,
@@ -650,8 +868,16 @@ elif page == "DBSCAN Clustering":
 
     if submitted:
         try:
-            frame = make_input_frame(values, CLUSTER_FEATURES)
-            scaled = scale_cluster_input(frame, models["scaler"])
+            frame = make_input_frame(
+                values,
+                CLUSTER_FEATURES,
+            )
+
+            scaled = scale_cluster_input(
+                frame,
+                models["scaler"],
+            )
+
             dbscan = models["dbscan"]
 
             if not hasattr(dbscan, "components_"):
@@ -675,13 +901,18 @@ elif page == "DBSCAN Clustering":
             training_labels = np.asarray(dbscan.labels_)
 
             if core_samples.size == 0 or core_indices.size == 0:
-                raise ValueError("The saved DBSCAN model has no core samples.")
-
-            if core_samples.ndim != 2 or core_samples.shape[1] != scaled.shape[1]:
                 raise ValueError(
-                    "DBSCAN core samples and the app input have different "
-                    "feature dimensions. The original DBSCAN feature list "
-                    "and preprocessing must be checked."
+                    "The saved DBSCAN model has no core samples."
+                )
+
+            if (
+                core_samples.ndim != 2
+                or core_samples.shape[1] != scaled.shape[1]
+            ):
+                raise ValueError(
+                    "DBSCAN core samples and the app input have "
+                    "different feature dimensions. The original DBSCAN "
+                    "feature list and preprocessing must be checked."
                 )
 
             if len(training_labels) <= int(core_indices.max()):
@@ -689,15 +920,12 @@ elif page == "DBSCAN Clustering":
                     "DBSCAN labels and core sample indices are inconsistent."
                 )
 
-            # DBSCAN supports several distance metrics. This calculation
-            # intentionally handles Euclidean distance only; using another
-            # metric here could produce incorrect assignments.
             metric = getattr(dbscan, "metric", "euclidean")
+
             if metric not in ("euclidean", "l2"):
                 raise ValueError(
-                    f"This approximation currently supports Euclidean "
-                    f"distance only. Saved DBSCAN metric: {metric}. "
-                    "Use the original training preprocessing and metric."
+                    "This approximation currently supports Euclidean "
+                    f"distance only. Saved DBSCAN metric: {metric}."
                 )
 
             distances = np.linalg.norm(
@@ -712,28 +940,38 @@ elif page == "DBSCAN Clustering":
             eps = float(dbscan.eps)
 
             st.markdown("### DBSCAN Result")
+
             c1, c2 = st.columns(2)
 
             with c1:
-                metric_card("NEAREST CORE CLUSTER", str(nearest_label))
+                metric_card(
+                    "NEAREST CORE CLUSTER",
+                    str(nearest_label),
+                )
+
             with c2:
-                metric_card("DISTANCE TO CORE SAMPLE", f"{nearest_distance:.4f}")
+                metric_card(
+                    "DISTANCE TO CORE SAMPLE",
+                    f"{nearest_distance:.4f}",
+                )
 
             if nearest_label == -1:
                 st.warning(
                     "The nearest saved core index has a noise label. "
                     "Check the saved model and training artifacts."
                 )
+
             elif nearest_distance <= eps:
                 st.success(
-                    f"The input is within eps of a saved core sample. "
+                    "The input is within eps of a saved core sample. "
                     f"Nearest cluster: {nearest_label}."
                 )
+
             else:
                 st.warning(
-                    "The input is farther than eps from every saved core "
-                    "sample. This nearest-core approximation treats it "
-                    "as unassigned/noise."
+                    "The input is farther than eps from every saved "
+                    "core sample. This nearest-core approximation "
+                    "treats it as unassigned/noise."
                 )
 
             st.caption(
@@ -743,7 +981,10 @@ elif page == "DBSCAN Clustering":
             )
 
             with st.expander("View submitted input values"):
-                st.dataframe(frame, use_container_width=True)
+                st.dataframe(
+                    frame,
+                    use_container_width=True,
+                )
 
         except Exception as error:
             st.error(f"DBSCAN clustering failed: {error}")
@@ -755,6 +996,7 @@ elif page == "DBSCAN Clustering":
 
 elif page == "Model Evaluation":
     st.subheader("Model Evaluation")
+
     results = load_evaluation_results()
 
     if results is None:
@@ -769,24 +1011,47 @@ elif page == "Model Evaluation":
         regression = results["regression"]
 
         st.markdown("### PHA Classification — Random Forest")
+
         c1, c2, c3, c4 = st.columns(4)
 
         with c1:
-            metric_card("ACCURACY", f'{classification["accuracy"]:.2%}')
+            metric_card(
+                "ACCURACY",
+                f'{classification["accuracy"]:.2%}',
+            )
+
         with c2:
-            metric_card("PRECISION", f'{classification["precision"]:.2%}')
+            metric_card(
+                "PRECISION",
+                f'{classification["precision"]:.2%}',
+            )
+
         with c3:
-            metric_card("RECALL", f'{classification["recall"]:.2%}')
+            metric_card(
+                "RECALL",
+                f'{classification["recall"]:.2%}',
+            )
+
         with c4:
-            metric_card("F1-SCORE", f'{classification["f1_score"]:.2%}')
+            metric_card(
+                "F1-SCORE",
+                f'{classification["f1_score"]:.2%}',
+            )
 
         st.markdown("#### Confusion Matrix")
-        cm = np.asarray(classification["confusion_matrix"])
+
+        cm = np.asarray(
+            classification["confusion_matrix"]
+        )
 
         if cm.shape != (2, 2):
-            st.error("The saved confusion matrix must have a 2 × 2 shape.")
+            st.error(
+                "The saved confusion matrix must have a 2 × 2 shape."
+            )
+
         else:
             fig, ax = plt.subplots(figsize=(5, 4))
+
             fig.patch.set_facecolor("#111E31")
             ax.set_facecolor("#111E31")
 
@@ -794,6 +1059,7 @@ elif page == "Model Evaluation":
                 confusion_matrix=cm,
                 display_labels=["Non-PHA", "PHA"],
             )
+
             display.plot(
                 ax=ax,
                 cmap="Blues",
@@ -801,13 +1067,22 @@ elif page == "Model Evaluation":
                 values_format="d",
             )
 
-            ax.set_title("PHA Classification Confusion Matrix", color="white")
+            ax.set_title(
+                "PHA Classification Confusion Matrix",
+                color="white",
+            )
+
             ax.set_xlabel("Predicted label", color="white")
             ax.set_ylabel("Actual label", color="white")
             ax.tick_params(colors="white")
+
             fig.tight_layout()
 
-            st.pyplot(fig, use_container_width=True)
+            st.pyplot(
+                fig,
+                use_container_width=True,
+            )
+
             plt.close(fig)
 
         st.info(
@@ -816,14 +1091,26 @@ elif page == "Model Evaluation":
         )
 
         st.markdown("### Diameter Prediction — Random Forest")
+
         c1, c2, c3 = st.columns(3)
 
         with c1:
-            metric_card("MAE", f'{regression["mae"]:.3f} km')
+            metric_card(
+                "MAE",
+                f'{regression["mae"]:.3f} km',
+            )
+
         with c2:
-            metric_card("RMSE", f'{regression["rmse"]:.3f} km')
+            metric_card(
+                "RMSE",
+                f'{regression["rmse"]:.3f} km',
+            )
+
         with c3:
-            metric_card("R² SCORE", f'{regression["r2"]:.4f}')
+            metric_card(
+                "R² SCORE",
+                f'{regression["r2"]:.4f}',
+            )
 
         st.caption(
             "MAE and RMSE measure prediction error in kilometres. "
