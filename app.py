@@ -53,16 +53,31 @@ CLUSTER_FEATURES = ["e", "a", "q", "i", "moid", "per", "n"]
 # =========================================================
 
 DEFAULTS = {
-    "e": 0.15, "a": 2.5, "q": 2.1, "i": 10.0,
-    "om": 80.0, "w": 150.0, "ma": 180.0, "ad": 2.9,
-    "n": 0.25, "per": 1440.0, "per_y": 3.94,
-    "tp": 2459000.0, "moid": 0.5,
-    "sigma_e": 0.0001, "sigma_a": 0.0001,
-    "sigma_q": 0.0001, "sigma_i": 0.001,
-    "sigma_om": 0.001, "sigma_w": 0.001,
-    "sigma_ma": 180.0, "sigma_ad": 0.0001,
-    "sigma_n": 0.000001, "sigma_tp": 0.001,
-    "sigma_per": 0.001, "rms": 0.5,
+    "e": 0.15,
+    "a": 2.5,
+    "q": 2.1,
+    "i": 10.0,
+    "om": 80.0,
+    "w": 150.0,
+    "ma": 180.0,
+    "ad": 2.9,
+    "n": 0.25,
+    "per": 1440.0,
+    "per_y": 3.94,
+    "tp": 2459000.0,
+    "moid": 0.5,
+    "sigma_e": 0.0001,
+    "sigma_a": 0.0001,
+    "sigma_q": 0.0001,
+    "sigma_i": 0.001,
+    "sigma_om": 0.001,
+    "sigma_w": 0.001,
+    "sigma_ma": 180.0,
+    "sigma_ad": 0.0001,
+    "sigma_n": 0.000001,
+    "sigma_tp": 0.001,
+    "sigma_per": 0.001,
+    "rms": 0.5,
 }
 
 
@@ -74,12 +89,23 @@ st.markdown(
     """
     <style>
     .stApp {
-        background: linear-gradient(135deg, #08111f, #101b30, #111827);
+        background: linear-gradient(
+            135deg, #08111f, #101b30, #111827
+        );
         color: #FFFFFF;
     }
 
     [data-testid="stHeader"] {
         background: transparent;
+    }
+
+    /* Hide heading link icons */
+    [data-testid="stHeaderActionElements"],
+    .stMarkdown h1 a,
+    .stMarkdown h2 a,
+    .stMarkdown h3 a,
+    .stMarkdown h4 a {
+        display: none !important;
     }
 
     [data-testid="stSidebar"] {
@@ -145,7 +171,7 @@ st.markdown(
         -webkit-text-fill-color: #111827 !important;
     }
 
-    /* Hide manual + and - stepper buttons */
+    /* Hide manual plus and minus stepper buttons */
     [data-testid="stNumberInput"] button {
         display: none !important;
     }
@@ -178,7 +204,7 @@ st.markdown(
         border-color: #344966 !important;
     }
 
-    /* Uniform home-page card titles and descriptions */
+    /* Uniform overview card titles and descriptions */
     .home-card-title {
         min-height: 3.8rem;
         display: flex;
@@ -228,7 +254,9 @@ def load_models():
         path = MODEL_DIR / filename
 
         if not path.is_file():
-            raise FileNotFoundError(f"Model file not found: {path}")
+            raise FileNotFoundError(
+                f"Model file not found: {path}"
+            )
 
         loaded[name] = joblib.load(path)
 
@@ -246,13 +274,16 @@ def load_evaluation_results():
 
 try:
     models = load_models()
+
 except Exception as error:
     st.error("Could not load the saved models.")
     st.code(str(error))
+
     st.warning(
         "Check that all model files exist and that your Python "
         "and scikit-learn versions are compatible with the saved models."
     )
+
     st.stop()
 
 
@@ -305,7 +336,9 @@ def go_to_page(page_name):
 
 
 def scale_cluster_input(frame, scaler):
-    scaler_features = getattr(scaler, "feature_names_in_", None)
+    scaler_features = getattr(
+        scaler, "feature_names_in_", None
+    )
 
     if scaler_features is not None:
         expected = list(scaler_features)
@@ -316,9 +349,14 @@ def scale_cluster_input(frame, scaler):
                 f"Expected: {expected}; supplied: {list(frame.columns)}."
             )
 
-    expected_count = getattr(scaler, "n_features_in_", None)
+    expected_count = getattr(
+        scaler, "n_features_in_", None
+    )
 
-    if expected_count is not None and expected_count != frame.shape[1]:
+    if (
+        expected_count is not None
+        and expected_count != frame.shape[1]
+    ):
         raise ValueError(
             f"The saved scaler expects {expected_count} features, "
             f"but the app supplies {frame.shape[1]}."
@@ -343,7 +381,10 @@ def show_shap_explanation(
                 if positive_class_index is not None
                 else 0
             )
-            values = np.asarray(shap_values[class_index])[0]
+
+            values = np.asarray(
+                shap_values[class_index]
+            )[0]
 
         else:
             shap_values = np.asarray(shap_values)
@@ -354,17 +395,22 @@ def show_shap_explanation(
                     if positive_class_index is not None
                     else 0
                 )
+
                 values = shap_values[0, :, class_index]
 
             elif shap_values.ndim == 2:
                 values = shap_values[0]
 
             else:
-                st.warning("SHAP returned an unsupported output shape.")
+                st.warning(
+                    "SHAP returned an unsupported output shape."
+                )
                 return
 
         if len(values) != len(frame.columns):
-            st.warning("SHAP values do not match the input features.")
+            st.warning(
+                "SHAP values do not match the input features."
+            )
             return
 
         importance = pd.DataFrame({
@@ -376,6 +422,7 @@ def show_shap_explanation(
         ).head(10)
 
         st.markdown(f"### {title}")
+
         st.caption(
             "Features are ranked by absolute SHAP impact for this input. "
             "The chart shows impact magnitude, not direction."
@@ -392,13 +439,16 @@ def show_shap_explanation(
         ax.set_xlabel("Absolute SHAP value")
         ax.set_ylabel("Feature")
         ax.set_title(title)
+
         fig.tight_layout()
 
         st.pyplot(fig, use_container_width=True)
         plt.close(fig)
 
     except Exception as error:
-        st.warning(f"SHAP explanation could not be generated: {error}")
+        st.warning(
+            f"SHAP explanation could not be generated: {error}"
+        )
 
 
 # =========================================================
@@ -406,7 +456,9 @@ def show_shap_explanation(
 # =========================================================
 
 if "next_page" in st.session_state:
-    st.session_state["navigation"] = st.session_state.pop("next_page")
+    st.session_state["navigation"] = (
+        st.session_state.pop("next_page")
+    )
 
 PAGES = [
     "Overview",
@@ -432,7 +484,6 @@ with st.sidebar:
     st.markdown("**Model Status**")
     st.success("Saved models loaded")
 
-    # DBSCAN diagnostics
     dbscan_model = models["dbscan"]
     scaler_model = models["scaler"]
 
@@ -442,12 +493,15 @@ with st.sidebar:
         "DBSCAN eps:",
         getattr(dbscan_model, "eps", "Unknown"),
     )
+
     st.write(
         "DBSCAN metric:",
         getattr(dbscan_model, "metric", "Unknown"),
     )
 
-    components = getattr(dbscan_model, "components_", None)
+    components = getattr(
+        dbscan_model, "components_", None
+    )
 
     st.write(
         "Core samples shape:",
@@ -476,7 +530,10 @@ st.title("Planetary Defense Analytics")
 st.caption("Asteroid orbital analysis using machine learning")
 
 if page != "Overview":
-    if st.button("← Back to Overview", key=f"back_{page}"):
+    if st.button(
+        "← Back to Overview",
+        key=f"back_{page}",
+    ):
         go_to_page("Overview")
         st.rerun()
 
@@ -524,7 +581,6 @@ if page == "Overview":
         ),
     ]
 
-    # Consistent three-column layout for home-page cards.
     columns = st.columns(3, gap="medium")
 
     for index, (title, description) in enumerate(items):
@@ -562,6 +618,7 @@ if page == "Overview":
 
 elif page == "PHA Classification":
     st.subheader("PHA Classification")
+
     st.caption(
         "Enter asteroid orbital features and view the model explanation."
     )
@@ -613,20 +670,24 @@ elif page == "PHA Classification":
                     (
                         index
                         for index, label in enumerate(classes)
-                        if str(label).strip().upper() in positive_labels
+                        if str(label).strip().upper()
+                        in positive_labels
                     ),
                     None,
                 )
 
                 if pha_index is None:
                     st.error(
-                        f"Could not identify the PHA class. "
+                        "Could not identify the PHA class. "
                         f"Model labels: {classes}. "
                         "Check the original training target labels."
                     )
 
                 else:
-                    probability = float(probabilities[pha_index])
+                    probability = float(
+                        probabilities[pha_index]
+                    )
+
                     is_pha = probability >= threshold
 
                     c1, c2 = st.columns(2)
@@ -757,6 +818,7 @@ elif page == "Diameter Prediction":
 
 elif page == "K-Means Clustering":
     st.subheader("K-Means Clustering")
+
     st.caption(
         "Group asteroid inputs using the saved K-Means model."
     )
@@ -799,8 +861,8 @@ elif page == "K-Means Clustering":
 
             if centers.shape[1] != point.shape[0]:
                 raise ValueError(
-                    "Input feature count differs from the K-Means "
-                    "cluster-centre feature count."
+                    "Input feature count differs from the "
+                    "K-Means cluster-centre feature count."
                 )
 
             distances = np.linalg.norm(
